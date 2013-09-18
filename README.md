@@ -3,7 +3,7 @@
 ## Synposis
 
 A [Catalyst Framework](http://catalystframework.org) Plugin that allows for automatic generation, and caching to disk
-of [Sitemap](http://sitemaps.org/protocol.html) and [Sitemap Index](http://sitemaps.org/protocol#index) files to support
+of [Sitemap](http://sitemaps.org/protocol.html) and [Sitemap Index](http://sitemaps.org/protocol.html#index) files to support
 beyond the 50,000 URL max of a single sitemap, to a maximum of 2.5 billion urls.
 
 ## Note

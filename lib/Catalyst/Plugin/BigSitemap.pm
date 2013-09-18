@@ -1,5 +1,5 @@
 package Catalyst::Plugin::BigSitemap;
-use Modern::Perl '2012';
+use Modern::Perl '2010';
 use Catalyst::Plugin::BigSitemap::SitemapBuilder;
 use WWW::SitemapIndex::XML;
 use WWW::Sitemap::XML;
@@ -9,55 +9,124 @@ use Moose;
 
 BEGIN { $Catalyst::Package::BigSitemap::VERSION = '0.1'; }
 
-#has 'sitemap_index' => ( is => 'rw', isa => 'XML::LibXML::Document',           );
-#has 'sitemap_files' => ( is => 'rw', isa => 'HashRef[XML::LibXML::Document]',  );
-#has 'update_freq'   => ( is => 'rw', isa => 'Int',                             );'
+=encoding utf8
 
-=head1 NAME Catalyst::Plugin::BigSitemap
+=head1 NAME Catalyst::Plugin::BigSitemap - Auto-generated Sitemaps for up to 2.5 billion URLs.
 
 =head1 DESCRIPTION
 
-A nearly drop-in replacement for Catalyst::Plugin::Sitemap that builds a Sitemap Index file
-as well as your normal Sitemap Files (to support websites with more than 50,000 urls).  
+A nearly drop-in replacement for L<Catalyst::Plugin::Sitemap> that builds a Sitemap Index file
+as well as your normal Sitemap Files (to support websites with more than 50,000 urls).  Additionally,
+some of the code for this plugin was forked from L<Catalyst::Plugin::Sitemap>
 
 Additionally, this method allows for storing your sitemap files to disk once they are built,
 and can automatically rebuild them for you at a specified interval
 
+=head1 SYNOPSIS
+
+    #
+    # Actions you want included in your sitemap.  In this example, there's a total of 10 urls that will be written
+    #
+
+    sub single_url_action :Local :Args(0) :Sitemap() { ... }
+    sub single_url_with_attrs : Local :Args(0) :Sitemap(  ) { ... }
+    sub multiple_url_action :Local :Args(1) :Sitemap('*') { ... }
+    
+    sub multiple_url_action_sitemap {
+        # the name's important -- it needs to match the action name with _sitemap following
+        
+    }
+
+    #
+    # Action to rebuild your sitemap -- you want to protect this!
+    # Best thing to do would be manually instantiate an instance of your
+    # application from the cron job, mark this method private and call it.  
+    # You could also go crazy and use WWW::Mechanize .. or hell.. leave it
+    # public and call it from your browser.. your call.  I wouldn't do that, 
+    # though ;) 
+    # Your old sitemap files will automatically be overwritten.  
+    #
+    
+    sub rebuild_cache :Private {
+        my ( $self, $c ) = @_;
+        $c->write_sitemap_cache();
+    }
+    
+    #
+    # Serving the sitemap files is best to do directly through apache.. 
+    # New version of catalyst have depreciated regex actions, which
+    # makes doing sitemap files a little more difficult (though you
+    # can still manually include support for regex actions)
+    #
+    
+
+
+=head1 CONFIGURATION
+
+There are a few configuration settings that must be set for this application to function properly.
+Additionally, I would HIGHLY recommend (unless you have a relatively small sitemap), to not serve
+these directly.  
+
+=over 4
+
+=item cache_dir - B<required>
+
+The absolute filesystem path to where your configuration file will be stored.
+
+=item url_base - I<optional: defaults to whichever base url the request is made to>
+
+This is the base url that will be used when building the urls for your application.
+
+B<Note:> This is important especially if your rebuild is being launched by a cronjob that's
+making a request to localhost.  In that case, if you fail the specify this setting, all your
+urls will be resolved to http://localhost/my-action-here/ ... This probably doesn't help you.
+
+B<Note:> The trailing slash is important!
+
+=item sitemap_name_format - I<optional: defaults to sitemap%d.xml.gz>
+
+A L<sprintf> format string.  Your sitemaps will be named beginning with 1 up through the total 
+number of sitemaps that are necessary to build your data.  By default, this will end up being
+something like 
+
+B<Note:> The file extension should either be C<.xml> or C<.xml.gz>.  The proper type of file will be 
+built depending on which extension you specify.
+
+=item sitema_index_name - I<optional: defaults to sitemap_index.xml>
+
+B<Note:> Just like with sitename_name_format, .xml or .xml.gz should be specified as the file 
+extension.
+
+=back
+
+=head2 L<Config::General> Example
+
+    <Plugin::BigSitemap>
+        cache_dir /var/www/myapp/root/sitemaps
+        url_base http://mywebsite/
+        sitemap_name_format sitemap%d.xml.gz
+        sitemap_index_name sitemap_index.xml
+    </Plugin::BigSitemap>
+
 =head1 ATTRIBUTES
 
 =head2 sitemap_builder
+
+A lazy-loaded L<Catalyst::Plugin::BigSitemap::SitemapBuilder> object.  If you want access to the individual
+L<WWW::Sitemap::XML> or the L<WWW::SitemapIndex::XML> file, you'll do that through this object.
 
 =cut
 
 has 'sitemap_builder' => ( is => 'rw', builder => '_get_sitemap_builder', lazy => 1, );
 
 
-=head1 CONFIG-SPECIFIED ATTRIBUTES
+=head1 METHODS
 
-The following attributes pull their configuration through your application's configuration.
+=over 4
 
-If you're using the default setup on new Catalyst builds, this will be in a L<Config::General>
-file, and would look something like this.
+=item write_sitemap_cache()
 
-<Plugin::BigSitemap>
-    cache_dir /tmp/myapp/sitemap
-    live_rebuilds 1
-    rebuildfreq daily
-    
-</Plugin::BigSitemap>
-
-=over 40
-
-=item cache_dir (REQUIRED)
-
-The absolute path to the directory where your sitemaps should be stored.  This really shouldn't be a 
-web-accessible directory.  This can be something like C</tmp/myapp/sitemap> or on windows 
-C<%USERPROFILE%\AppData\Local\Temp\myapp\sitemap>.  
-
-=item live_rebuilds (Optional)
-
-=item rebuildfreq (Optional) 
-
+Writes your sitemap_index and sitemap files to whichever cache_dir you've specified in your configuration.
 
 =back
 
@@ -65,66 +134,69 @@ C<%USERPROFILE%\AppData\Local\Temp\myapp\sitemap>.
 
 sub write_sitemap_cache {
     my $self = shift;
-    
-    my $temp_dir    = Path::Class::tempdir( cleanup => 1 );
-    my $temp_dh     = $temp_dir->open() || croak $!;
-    
+
     my $cache_dir   = dir( $self->config->{'Plugin::BigSitemap'}->{cache_dir} );
-    my $cache_dh    = $cache_dir->open() || croak $!;
     
-    # create a temp build directory
-    # keep an array of all of our sitemap paths
-    # loop over all of our files, and create gzipped sitemap files in their place.
+    my $sitemap_index_filename = $self->config->{'Plugin::BigSitemap'}->{sitemap_index_name} || 'sitemap_index.xml';
+    my $sitemap_index_full_name = $cache_dir->file($sitemap_index_filename)->stringify;    
     
-    # lastly, create our sitemap index file
-    
-    # get a handle to our cache directory -- create it if it doesn't exist
+    $self->sitemap_builder->sitemap_index->write( $sitemap_index_full_name );         
     
     
+    for (my $i = 0; $i < $self->sitemap_builder->sitemap_count; $i++) {  
+              
+        my $filename    = sprintf($self->sitemap_builder->sitemap_name_format, ($i + 1));        
+        my $full_name   = $cache_dir->file($filename)->stringify;        
     
-    
+        $self->sitemap_builder->sitemap($i)->write( $full_name );        
+    }
 }
 
-=back
 
 =head1 INTERNAL USE METHODS
 
-=head2 _get_sitemap_builder()
+Methods you shouldn't be calling directly.. They're listed here for documentation purposes.
+
+=over 4
+
+=item _get_sitemap_builder()
 
 Returns a sitemap builder object that's fully populated with all the sitemap urls registered.
+This can take quite some time depending on the number of urls you're registering with the sitemap
+and how they're being generated.  
+
+You shouldn't ever need to call this directly -- it's set as the builder method for the L<sitemap_builder> attribute.
+
+B<Note>:  This can take an incredibly long time especially if you have a lot of URLs!  Use with care!
+
+=back
 
 =cut
 
 sub _get_sitemap_builder {
     my $self = shift;
     
-    # TODO: allow this to be pulled from a configuration file
+    # setup our builder
     my $sb = Catalyst::Plugin::BigSitemap::SitemapBuilder->new(
-        sitemap_base_uri => $self->req->base,
-        is_gzipped => $self->config->{''}->{is_gzipped} || 0,
-        sitemap_url_format => $self->config->{''}->{sitemap_url_format} || ''
+        sitemap_base_uri    => $self->config->{'Plugin::BigSitemap'}->{url_base} || $self->req->base,
+        sitemap_name_format => $self->config->{'Plugin::BigSitemap'}->{sitemap_name_format} || 'sitemap%s.xml.gz',
     );
     
     # Ugly ugly .. but all we're doing here is looping over every action of every controller in our application.
-    foreach my $controller ( map { $self->controller($_) } $self->controllers ) {  
-        
+    foreach my $controller ( map { $self->controller($_) } $self->controllers ) {          
         ACTION: 
         foreach my $action ( map { $controller->action_for( $_->name ) } $controller->get_action_methods ) {
 
-            # Make sure there's at least one sitemap action .. break and complain loudly if there is more than one sitemap
+            # Make sure there's at least one sitemap action .. 
+            # Throw an exception if there's more than one sitemap attribute
             my $attr = $action->attributes->{Sitemap} or next ACTION;
-            # TODO: need to show the fully qualified name here
             croak "more than one attribute 'Sitemap' for sub " if @$attr > 1;
 
             my @attr = split /\s*(?:,|=>)\s*/, $attr->[0];
 
             my %uri_params;
 
-            if ( @attr == 1 ) {
-                
-                # * indicates that this action maps to multiple urls.
-                # The user must create a method named myactionname_sitemap 
-                # which must populate our sitemap builder with all the urls
+            if ( @attr == 1 ) {                
                 if ( $attr[0] eq '*' ) {
                     my $sitemap_method = $action->name . "_sitemap";
 
@@ -138,7 +210,6 @@ sub _get_sitemap_builder {
                     # it's a number 
                     $uri_params{priority} = $attr[0];
                 }
-
             }
             elsif ( @attr > 0 ) {
                 %uri_params = @attr;
@@ -153,5 +224,25 @@ sub _get_sitemap_builder {
     return $sb;
 }
 
+=head1 SEE ALSO
+
+=head1 AUTHOR
+
+Derek J. Curtis C<djcurtis at summersetsoftware dot com>
+
+Summerset Software, LLC
+
+L<http://www.summersetsoftware.com>
+
+=head1 COPYRIGHT
+
+Derek J. Curtis 2013
+
+=head1 LICENSE
+
+This library is free software. You can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=cut
 
 1;

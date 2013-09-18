@@ -1,5 +1,5 @@
 package Catalyst::Plugin::BigSitemap::SitemapBuilder;
-use Modern::Perl '2012';
+use Modern::Perl '2010';
 use WWW::Sitemap::XML;
 use WWW::Sitemap::XML::URL;
 use WWW::SitemapIndex::XML;
@@ -8,21 +8,34 @@ use Try::Tiny;
 use Data::Dumper;
 use Moose;
 
-=head1 NAME 
+=head1 NAME Catalyst::Plugin::BigSitemap::SitemapBuilder - Helper object for the BigSitemap plugin
 
 =head1 DESCRIPTION
 
+This object's role is to accept a collection of L<WWW::Sitemap::XML::URL> objects via the L<add>
+method.  
+
+=head1 CONSTRUCTOR
+
+There are two required parameters that must be passed to the constructor, L<sitemap_base_uri> and
+L<sitemap_name_format>.  
+
+
 =head1 ATTRIBUTES
 
-=shift 40
+=shift 4
 
-=item urls
+=item urls - I<ArrayRef> of L<WWW::Sitemap::XML::URL>
 
-=item sitemap_base_uri
+=item sitemap_base_uri - I<Str>
 
-=item is_gzipped
+=item sitemap_name_format - I<URI::http>
 
-=item failed_count
+=item failed_count - I<Int>
+
+A running count of all the URLs that failed validation in the L<WWW::Sitemap::XML::URL> module and could not 
+be added to the collection.. This should always report zero unless you've screwed something up in your
+C<sub my_action_sitemap> controller methods.
 
 =back
 
@@ -30,14 +43,12 @@ use Moose;
 
 has 'urls'               => ( is => 'rw', isa => 'ArrayRef[WWW::Sitemap::XML::URL]', default => sub { [] } );
 has 'sitemap_base_uri'   => ( is => 'ro', isa => 'URI::http' );
-has 'is_gzipped'         => ( is => 'ro', isa => 'Bool' ); 
-has 'sitemap_url_format' => ( is => 'ro', isa => 'Str' );
-
+has 'sitemap_name_format'=> ( is => 'ro', isa => 'Str' );
 has 'failed_count'       => ( is => 'rw', isa => 'Int', default => 0 );
 
 =head1 METHODS
 
-=shift 40
+=over 4
 
 =item add( $myUrlString )
 =item add( loc => ?, changefreq => ?, priority => ? ) # last modified
@@ -53,6 +64,7 @@ URL you want to add to the sitemap.  The second flavor takes a hashref
 
 =item sitemap($index)
 
+B<Note:> $index is a 1-based index (as well as being an integer value, if you didn't figure that much out ;) ) 
 
 =back
 =cut
@@ -80,7 +92,7 @@ sub add {
     }
     catch {
         warn $!;
-        warn "Failed to add parameter @params";        
+        warn "Failed to add url.  The following parameters were specified: @params";        
         $self->failed_count($self->failed_count + 1);
     };
     
@@ -105,10 +117,10 @@ sub sitemap_index {
     
     my $smi = WWW::SitemapIndex::XML->new();
     
-    for (my $i = 0; $i < $self->sitemap_count; $i++) {   
-             
-        my $file_ext = $self->is_gzipped ? '.xml.gz' : '.xml';        
-        $smi->add( loc => $self->sitemap_base_uri->as_string . "sitemap" . ($i + 1) . $file_ext );
+    for (my $index = 0; $index < $self->sitemap_count; $index++) {   
+        # TODO: support lastupdate
+        # TODO: document that we're using 1-based indexes for the sitemap files
+        $smi->add( loc => $self->sitemap_base_uri->as_string . sprintf($self->sitemap_url_format, ($index + 1)) );
     }
     
     return $smi;    
@@ -127,7 +139,7 @@ sub sitemap {
             $sm->add($url);    
         }
         catch{
-            warn "Problem url" . Dumper $url;    
+            warn "Problem adding url to sitemap: " . Dumper $url;    
         };
     }
     
@@ -137,9 +149,16 @@ sub sitemap {
 
 =head1 INTERNAL USE METHODS
 
-=shift 40
+Methods you're not meant to use directly.
+
+=over 4
 
 =item _urls_slice($index)
+
+Returns an array slice of URLs for the sitemap at the provided index.  
+Sitemaps can consist of up to 50,000 URLS, when creating the slice, 
+we use the assumption that we'll try to get up to 50,000 per each 
+sitemap.
 
 =back
 =cut
@@ -160,7 +179,26 @@ sub _urls_slice {
     return @{$self->urls}[$start_index .. $end_index];    
 }
 
+=head1 SEE ALSO
 
+=head1 AUTHOR
+
+Derek J. Curtis C<djcurtis at summersetsoftware dot com>
+
+Summerset Software, LLC
+
+L<http://www.summersetsoftware.com>
+
+=head1 COPYRIGHT
+
+Derek J. Curtis 2013
+
+=head1 LICENSE
+
+This library is free software. You can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=cut
 
 
 1;

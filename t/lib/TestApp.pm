@@ -3,7 +3,7 @@ package TestApp;
 use strict;
 use warnings;
 
-use Catalyst qw/ Sitemap /;
+use Catalyst qw/ BigSitemap /;
 
 __PACKAGE__->setup;
 

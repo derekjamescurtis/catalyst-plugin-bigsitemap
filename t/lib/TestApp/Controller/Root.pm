@@ -7,7 +7,7 @@ use parent 'Catalyst::Controller';
 
 sub sitemap : Path('/sitemap') {
     my ( $self, $c ) = @_;
-    $c->res->body( $c->sitemap_as_xml );
+    $c->res->body( $c->sitemap_builder->sitemap(0)->as_xml );
 }
 
 sub dynamic :Path('/dynamic') {
