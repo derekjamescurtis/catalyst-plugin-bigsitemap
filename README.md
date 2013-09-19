@@ -1,9 +1,19 @@
 # Catalyst::Plugin::BigSitemap
 
-## Version 0.01
+## Version 0.02
 
 Hey! Version numbers mean things.  Use care if you're going to deploy this to production.  This module has some unit tests
 but not a very robust suite yet.  In newer versions, the interface is apt to change.  I warned you. 
+
+## Change History 
+
+### 0.02
+
+* Added **sitemap** and **sitemap_as_xml** attributes to the plugin module to make for complete interface compatability with **Catalyst::Plugin::Sitemap 1.0.0**
+
+### 0.01
+
+* Initial version
 
 ## Description
 
@@ -70,7 +80,8 @@ sub multiple_url_action_sitemap {
 }
 
 #
-# Action to rebuild your sitemap -- you want to protect this!
+# Action to rebuild your sitemaps and writes them to your harddisk 
+# !!! You want to protect this !!!
 # Best thing to do would be manually instantiate an instance of your
 # application from the cron job, mark this method private and call it.  
 # You could also go crazy and use WWW::Mechanize .. or hell.. leave it
@@ -115,4 +126,10 @@ sub single_sitemap :Private {
 This is designed to _almost_ be a drop-in replacement for the existing [Catalyst::Plugin::Sitemap](https://metacpan.org/module/Catalyst::Plugin::Sitemap), 
 and the URL attributes work the exact same way.  Your controller actions are attributed in the EXACT same way.  
 The only difference is when you want to serve your sitemap file.
+
+## TODO List
+
+* More robust unit test suite.
+* Improved POD documentation with better explanation of the attributes that can be passed to SitemapBuilder->add()
+* Allow for lastmodified on SitemapIndex files.  
 

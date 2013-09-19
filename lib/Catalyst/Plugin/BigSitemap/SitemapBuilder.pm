@@ -8,7 +8,13 @@ use Try::Tiny;
 use Data::Dumper;
 use Moose;
 
-=head1 NAME Catalyst::Plugin::BigSitemap::SitemapBuilder - Helper object for the BigSitemap plugin
+=head1 NAME 
+
+Catalyst::Plugin::BigSitemap::SitemapBuilder - Helper object for the BigSitemap plugin
+
+=head1 VERSION
+
+0.02
 
 =head1 DESCRIPTION
 
@@ -27,9 +33,21 @@ L<sitemap_name_format>.
 
 =item urls - I<ArrayRef> of L<WWW::Sitemap::XML::URL>
 
-=item sitemap_base_uri - I<Str>
+A collection of every URL in your application that will be included in the sitemap.
 
-=item sitemap_name_format - I<URI::http>
+=item sitemap_base_uri - L<URI::http>
+
+The base URI that should be used when resolving the action urls in your application.  
+You should really specify this manually, in the event that one day you want to start
+run this module from a cron job.
+
+=item sitemap_name_format - I<Str>
+
+A sprintf style format for the names of your sitemap files.  Note:  The names of the sitemap files
+will start by inserting the number 1 and incrementing for each sitemap file written.  It's important
+to note that in code, calls to the sitemap method use a 0-based-index but your sitemap filenames are
+1-based.  This is just that way so the names of the individual sitemaps match to the examples given
+on the L<http://www.sitemaps.org> website.
 
 =item failed_count - I<Int>
 
@@ -56,17 +74,27 @@ has 'failed_count'       => ( is => 'rw', isa => 'Int', default => 0 );
 This method comes in two flavors.  The first, take a single string parameter that should be the stringified version of the
 URL you want to add to the sitemap.  The second flavor takes a hashref 
 
-=item urls_count()
+=item urls_count() = Int
 
-=item sitemap_count()
+.. how many urls total have been added to the builder.
 
-=item sitemap_index()
+=item sitemap_count() - Int
 
-=item sitemap($index)
+.. how many total sitemap files can be built with this data.
 
-B<Note:> $index is a 1-based index (as well as being an integer value, if you didn't figure that much out ;) ) 
+=item sitemap_index() - L<WWW::SitemapIndex::XML>
+
+Generates and returns a new sitemapindex object based on the urls currently in this object's
+urls collection, the sitemap_base_uri and the sitemap_name_format setting.  
+
+=item sitemap($index) - L<WWW::Sitemap::XML>
+
+Generates and returns a new sitemap object based at your requested index.
+
+B<Note:> $index is a 0-based index of the sitemap you want to retrieve. 
 
 =back
+
 =cut
 
 sub add {
@@ -149,7 +177,8 @@ sub sitemap {
 
 =head1 INTERNAL USE METHODS
 
-Methods you're not meant to use directly.
+Methods you're not meant to use directly, so don't!  They're here for documentation
+purposes only.
 
 =over 4
 
@@ -184,10 +213,6 @@ sub _urls_slice {
 =head1 AUTHOR
 
 Derek J. Curtis <djcurtis@summersetsoftware.com>
-
-Summerset Software, LLC
-
-L<http://www.summersetsoftware.com>
 
 =head1 COPYRIGHT
 
