@@ -183,7 +183,7 @@ sub _urls_slice {
 
 =head1 AUTHOR
 
-Derek J. Curtis C<djcurtis at summersetsoftware dot com>
+Derek J. Curtis <djcurtis@summersetsoftware.com>
 
 Summerset Software, LLC
 

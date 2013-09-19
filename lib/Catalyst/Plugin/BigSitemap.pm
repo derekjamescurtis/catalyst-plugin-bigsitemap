@@ -29,11 +29,17 @@ and can automatically rebuild them for you at a specified interval
     #
 
     sub single_url_action :Local :Args(0) :Sitemap() { ... }
-    sub single_url_with_attrs : Local :Args(0) :Sitemap(  ) { ... }
-    sub multiple_url_action :Local :Args(1) :Sitemap('*') { ... }
+    sub single_url_with_attrs : Local :Args(0) :Sitemap( loc => 'http://www.mysite/here', changefreq => 'daily', priority => '0.5' ) { ... }
     
+    sub multiple_url_action :Local :Args(1) :Sitemap('*') { ... }    
     sub multiple_url_action_sitemap {
-        # the name's important -- it needs to match the action name with _sitemap following
+        my ( $self, $c, $sitemap ) = @_;
+        
+        my $a = $c->controller('MyController')->action_for('multiple_url_action');
+        for (my $i = 0; $i < 8; $i++) {
+            my $uri = $c->uri_for($a, [ $i, ]);
+            $sitemap->add( $uri );
+        }
         
     }
 
@@ -57,8 +63,24 @@ and can automatically rebuild them for you at a specified interval
     # New version of catalyst have depreciated regex actions, which
     # makes doing sitemap files a little more difficult (though you
     # can still manually include support for regex actions)
+    # 
+    # Also, if you only have a single sitemap, and want to use this like 
+    # Catalyst::Plugin::Sitemap, see sub single_sitemap below. 
     #
     
+    sub sitemap_index :Private {
+        my ( $self, $c ) = @_;
+        
+        my $smi_xml = $c->sitemap_builder->sitemap_index->as_xml;
+        $c->response->body( $smi_xml );
+    }
+    
+    sub single_sitemap :Private {
+        my ( $self, $c ) = @_;
+        
+        my $sm_xml = $c->sitemap_builder->sitemap(0)->as_xml;
+        $c->response->body( $sm_xml );
+    }
 
 
 =head1 CONFIGURATION
@@ -228,7 +250,7 @@ sub _get_sitemap_builder {
 
 =head1 AUTHOR
 
-Derek J. Curtis C<djcurtis at summersetsoftware dot com>
+Derek J. Curtis <djcurtis@summersetsoftware.com>
 
 Summerset Software, LLC
 
