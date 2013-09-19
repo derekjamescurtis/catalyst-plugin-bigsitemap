@@ -42,8 +42,8 @@ building and serving from Catalyst for each request..)
 ```
 <VirtualHost *.80>
     ... your standard configuration ... 
-    Alias ^/sitemap_index.xml$ /var/www/mysite/root/sitemaps/sitemap_index.xml
-    Alias ^/sitemap(\d+).xml.gz$ /var/www/mysite/root/sitemaps/sitemap$1.xml.gz
+    Alias /sitemap_index.xml /var/www/mysite/root/sitemaps/sitemap_index.xml
+    AliasMatch ^/sitemap(\d+).xml.gz$ /var/www/mysite/root/sitemaps/sitemap$1.xml.gz
 </VirtualHost>
 ```
 
