@@ -1,11 +1,13 @@
 # Catalyst::Plugin::BigSitemap
 
-## Version 0.02
-
-Hey! Version numbers mean things.  Use care if you're going to deploy this to production.  This module has some unit tests
-but not a very robust suite yet.  In newer versions, the interface is apt to change.  I warned you. 
+## Version 0.9
 
 ## Change History 
+
+### 0.9
+
+* Unit tests written 
+* Minor bugfix in SitemapBuilder->\_urls\_slice method.  
 
 ### 0.02
 
@@ -129,7 +131,5 @@ The only difference is when you want to serve your sitemap file.
 
 ## TODO List
 
-* More robust unit test suite.
-* Improved POD documentation with better explanation of the attributes that can be passed to SitemapBuilder->add()
 * Allow for lastmodified on SitemapIndex files.  
 

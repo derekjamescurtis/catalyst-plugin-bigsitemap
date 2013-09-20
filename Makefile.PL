@@ -4,7 +4,7 @@ use inc::Module::Install 1.02;
 name 'Catalyst-Plugin-BigSitemap';
 abstract 'A Catalyst Plugin for Sitemaps up to 2.5 billion urls.';
 license 'perl';
-version '0.03';
+version '0.9';
 perl_version '5.010002';
 all_from 'lib/Catalyst/Plugin/BigSitemap.pm';
 

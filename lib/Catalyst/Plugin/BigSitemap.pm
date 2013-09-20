@@ -7,7 +7,7 @@ use Path::Class;
 use Carp;
 use Moose;
 
-BEGIN { $Catalyst::Plugin::BigSitemap::VERSION = '0.2'; }
+BEGIN { $Catalyst::Plugin::BigSitemap::VERSION = '0.9'; }
 
 =encoding utf8
 
@@ -189,6 +189,8 @@ has 'sitemap_as_xml'    => ( is => 'ro', builder => '_get_sitemap_as_xml', lazy 
 
 Writes your sitemap_index and sitemap files to whichever cache_dir you've specified in your configuration.
 
+On success, returns an array with the absolute path to the sitemap index (element 0), and all sitemap files.
+
 =back
 
 =cut
@@ -203,14 +205,18 @@ sub write_sitemap_cache {
     
     $self->sitemap_builder->sitemap_index->write( $sitemap_index_full_name );         
     
-    
+    my @sitemaps_written;
     for (my $i = 0; $i < $self->sitemap_builder->sitemap_count; $i++) {  
               
         my $filename    = sprintf($self->sitemap_builder->sitemap_name_format, ($i + 1));        
         my $full_name   = $cache_dir->file($filename)->stringify;        
     
-        $self->sitemap_builder->sitemap($i)->write( $full_name );        
+        $self->sitemap_builder->sitemap($i)->write( $full_name );
+        
+        push @sitemaps_written, $full_name;        
     }
+    
+    return ( $sitemap_index_full_name, @sitemaps_written );
 }
 
 =head1 INTERNAL USE METHODS
