@@ -6,9 +6,15 @@ use warnings;
 use parent 'Catalyst::Controller';
 
 sub sitemap : Path('/sitemap') {
-    my ( $self, $c ) = @_;
-    $c->res->body( $c->sitemap_builder->sitemap(0)->as_xml );
+    my ( $self, $c ) = @_;    
+    $c->res->body( $c->sitemap_as_xml );
 }
+sub sitemap_index : Path('/sitemap-index') {
+    my ($self, $c) = @_;    
+    $c->res->body( $c->sitemap_builder->sitemap_index );       
+}
+
+
 
 sub dynamic :Path('/dynamic') {
     my ( $self, $c ) = @_;

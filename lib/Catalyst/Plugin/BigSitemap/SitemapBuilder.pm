@@ -69,10 +69,12 @@ has 'failed_count'       => ( is => 'rw', isa => 'Int', default => 0 );
 =over 4
 
 =item add( $myUrlString )
-=item add( loc => ?, changefreq => ?, priority => ? ) # last modified
+=item add( $myUriObject )
+=item add( loc => ? [, changefreq => ?] [, priority => ?] [, lastmod => ?] )
 
-This method comes in two flavors.  The first, take a single string parameter that should be the stringified version of the
-URL you want to add to the sitemap.  The second flavor takes a hashref 
+This method comes in three flavors.  The first, take a single string parameter that should be the stringified version of the
+URL you want to add to the sitemap. The second, takes a URI::http object.  The last flavor takes a hashref containing all your
+input parameters. 
 
 =item urls_count() = Int
 
@@ -105,22 +107,23 @@ sub add {
     # we allow a single string parameter to be passed in.
     my $u;
     try {
-        if (@params == 1){  
+        if (@params == 0) {
+            croak "method add() requires at least one argument.";
+        }
+        elsif (@params == 1){  
             $u = WWW::Sitemap::XML::URL->new(loc => $params[0]);
         }
-        elsif (@params > 1) {       
+        elsif (@params % 2 == 0) {       
             my %ph = @params;      
             $u = WWW::Sitemap::XML::URL->new(%ph);
-        }
+        }        
         else {                        
-            die "add requires at least one argument";  
+            croak "method add() requires either a single argument, or an even number of arguments.";  
         }
         
         push @{$self->urls}, $u;        
     }
-    catch {
-        warn $!;
-        warn "Failed to add url.  The following parameters were specified: @params";        
+    catch {   
         $self->failed_count($self->failed_count + 1);
     };
     
@@ -147,7 +150,6 @@ sub sitemap_index {
     
     for (my $index = 0; $index < $self->sitemap_count; $index++) {   
         # TODO: support lastupdate
-        # TODO: document that we're using 1-based indexes for the sitemap files
         $smi->add( loc => $self->sitemap_base_uri->as_string . sprintf($self->sitemap_url_format, ($index + 1)) );
     }
     
@@ -155,8 +157,7 @@ sub sitemap_index {
 }
 
 sub sitemap {
-    my $self = shift;
-    my $index = shift;
+    my ( $self, $index ) = @_;    
     
     my @sitemap_urls = $self->_urls_slice( $index );
     
@@ -174,7 +175,6 @@ sub sitemap {
     return $sm;    
 }
 
-
 =head1 INTERNAL USE METHODS
 
 Methods you're not meant to use directly, so don't!  They're here for documentation
@@ -190,19 +190,20 @@ we use the assumption that we'll try to get up to 50,000 per each
 sitemap.
 
 =back
+
 =cut
 
 sub _urls_slice {
-    my ($self, $index) = @_;
+    my ( $self, $index ) = @_;
     
-    my $start_index = $index * 49_999;
+    my $start_index = $index * 50_000;
     my $end_index   = 0;
     
     if ($index + 1 == $self->sitemap_count) {
         $end_index  = ($self->urls_count % 50_0000) - 1;        
     }
     else {
-        $end_index  = $start_index + 50_000;
+        $end_index  = $start_index + (50_000 - 1); 
     }
         
     return @{$self->urls}[$start_index .. $end_index];    
@@ -212,7 +213,7 @@ sub _urls_slice {
 
 =head1 AUTHOR
 
-Derek J. Curtis <djcurtis@summersetsoftware.com>
+Derek J. Curtis C<djcurtis at summersetsoftware dot com>
 
 =head1 COPYRIGHT
 
@@ -224,6 +225,5 @@ This library is free software. You can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
-
 
 1;
