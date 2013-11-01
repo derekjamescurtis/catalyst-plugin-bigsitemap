@@ -8,13 +8,15 @@ use Try::Tiny;
 use Data::Dumper;
 use Moose;
 
+BEGIN { our $VERSION = '1.0'; }
+
 =head1 NAME 
 
 Catalyst::Plugin::BigSitemap::SitemapBuilder - Helper object for the BigSitemap plugin
 
 =head1 VERSION
 
-0.02
+1.0
 
 =head1 DESCRIPTION
 
@@ -60,7 +62,7 @@ C<sub my_action_sitemap> controller methods.
 =cut
 
 has 'urls'               => ( is => 'rw', isa => 'ArrayRef[WWW::Sitemap::XML::URL]', default => sub { [] } );
-has 'sitemap_base_uri'   => ( is => 'ro', isa => 'URI::http' );
+has 'sitemap_base_uri'   => ( is => 'ro', isa => 'URI' );
 has 'sitemap_name_format'=> ( is => 'ro', isa => 'Str' );
 has 'failed_count'       => ( is => 'rw', isa => 'Int', default => 0 );
 
@@ -150,7 +152,7 @@ sub sitemap_index {
     
     for (my $index = 0; $index < $self->sitemap_count; $index++) {   
         # TODO: support lastupdate
-        $smi->add( loc => $self->sitemap_base_uri->as_string . sprintf($self->sitemap_url_format, ($index + 1)) );
+        $smi->add( loc => $self->sitemap_base_uri->as_string . sprintf($self->sitemap_name_format, ($index + 1)) );
     }
     
     return $smi;    

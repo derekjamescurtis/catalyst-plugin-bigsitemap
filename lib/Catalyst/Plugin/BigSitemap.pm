@@ -6,8 +6,10 @@ use WWW::Sitemap::XML;
 use Path::Class;
 use Carp;
 use Moose;
+use URI::http;
 
-BEGIN { $Catalyst::Plugin::BigSitemap::VERSION = '0.9'; }
+
+BEGIN { our $VERSION = '1.0'; }
 
 =encoding utf8
 
@@ -17,7 +19,7 @@ Catalyst::Plugin::BigSitemap - Auto-generated Sitemaps for up to 2.5 billion URL
 
 =head1 VERSION
 
-0.02
+1.0
 
 =head1 DESCRIPTION
 
@@ -252,7 +254,10 @@ sub _get_sitemap_builder {
     
     # setup our builder
     my $sb = Catalyst::Plugin::BigSitemap::SitemapBuilder->new(
-        sitemap_base_uri    => $self->config->{'Plugin::BigSitemap'}->{url_base} || $self->req->base,
+        
+    
+        
+        sitemap_base_uri    => URI->new( $self->config->{'Plugin::BigSitemap'}->{url_base} )  || $self->req->base,
         sitemap_name_format => $self->config->{'Plugin::BigSitemap'}->{sitemap_name_format} || 'sitemap%d.xml.gz',
     );
     
