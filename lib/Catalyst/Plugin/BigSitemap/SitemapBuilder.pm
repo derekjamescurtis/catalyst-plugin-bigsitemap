@@ -6,6 +6,10 @@ use WWW::SitemapIndex::XML;
 use Carp;
 use Try::Tiny;
 use Data::Dumper;
+use DBI;
+use DBD::SQLite;
+use File::Temp qw/tempdir/;
+use Path::Class;
 use Moose;
 
 =head1 NAME 
@@ -57,12 +61,17 @@ C<sub my_action_sitemap> controller methods.
 
 =back
 
+=head1 TODOs
+
+lastmod is not supported on the sitemap index.
+
 =cut
 
-has 'urls'               => ( is => 'rw', isa => 'ArrayRef[WWW::Sitemap::XML::URL]', default => sub { [] } );
-has 'sitemap_base_uri'   => ( is => 'ro', isa => 'URI::http' );
-has 'sitemap_name_format'=> ( is => 'ro', isa => 'Str' );
-has 'failed_count'       => ( is => 'rw', isa => 'Int', default => 0 );
+# has 'urls'                  => ( is => 'rw', isa => 'ArrayRef[WWW::Sitemap::XML::URL]', default => sub { [] } );
+has 'sitemap_base_uri'      => ( is => 'ro', isa => 'URI' );
+has 'sitemap_name_format'   => ( is => 'ro', isa => 'Str' );
+has 'failed_count'          => ( is => 'rw', isa => 'Int', default => 0 );
+has 'dbh'                   => ( is => 'ro', builder => '_build_dbh' );
 
 =head1 METHODS
 
@@ -105,15 +114,20 @@ sub add {
     
     # create our url object.. for compatability with Catalyst::Plugin::Sitemap
     # we allow a single string parameter to be passed in.
+    #
+    # NOTE: The WWW::Sitemap::XML::URL object is immediately discarded afterwards.  This is 
+    # a quick way to make sure it validates properly before we put it in the database.
     my $u;
-    try {
+    try {    	
         if (@params == 0) {
             croak "method add() requires at least one argument.";
         }
         elsif (@params == 1){  
+        	# if only a single parameter is provided, we assume it's location
             $u = WWW::Sitemap::XML::URL->new(loc => $params[0]);
         }
         elsif (@params % 2 == 0) {       
+        	# otherwise, we need an even number of args
             my %ph = @params;      
             $u = WWW::Sitemap::XML::URL->new(%ph);
         }        
@@ -121,7 +135,8 @@ sub add {
             croak "method add() requires either a single argument, or an even number of arguments.";  
         }
         
-        push @{$self->urls}, $u;        
+        my $insert_cmd = $self->dbi->prepare('INSERT INTO uri (loc, lastmod, changefreq, priority) VALUES (?,?,?,?)');
+        $insert_cmd->execute($u->loc, $u->lastmod, $u->changefreq, $u->priority);        
     }
     catch {   
         $self->failed_count($self->failed_count + 1);
@@ -130,8 +145,9 @@ sub add {
 }
 
 sub urls_count {
-    my $self = shift;    
-    return scalar @{$self->urls};
+    my $self = shift;
+    
+    return $self->dbh->selectrow_hashref('SELECT COUNT(*) AS c FROM uri')->{c};
 }
 
 sub sitemap_count {
@@ -197,17 +213,55 @@ sub _urls_slice {
     my ( $self, $index ) = @_;
     
     my $start_index = $index * 50_000;
-    my $end_index   = 0;
     
-    if ($index + 1 == $self->sitemap_count) {
-        $end_index  = ($self->urls_count % 50_0000) - 1;        
+    my $rows = $self->dbh->selectall_hashref("SELECT * FROM uri LIMIT 50000 OFFSET $start_index", 'id');
+    my @urls = ();
+    foreach my $id (keys %$rows) {
+        my $d = $rows->{$id};
+        push @urls, WWW::Sitemap::XML::URL->new(
+            loc         => $d->{loc}, 
+            lastmod     => $d->{lastmod}, 
+            changefreq  => $d->{changefreq}, 
+            priority    => $d->{priority}
+        );
     }
-    else {
-        $end_index  = $start_index + (50_000 - 1); 
-    }
-        
-    return @{$self->urls}[$start_index .. $end_index];    
+    
+    return @urls;
 }
+
+=head1 BUILDER METHODS
+
+=over 4
+
+=item dbh_builder()
+
+=back
+
+=cut
+
+sub _build_dbh {
+    my $self = shift;
+    
+    # create + connect to temporary database
+    my $db_path = Path::Class::File->new(tempdir(CLEANUP => 1), 'catalyst-plugin-bigsitemap.db')->stringify();    
+    my $dbh = DBI->connect(
+                'dbi:SQLite:dbname=' . $db_path,
+                '',''
+              ) || die 'Could not create database';
+              
+    # make our single table to use
+    $dbh->do('CREATE TABLE uri (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                loc TEXT NOT NULL,
+                lastmod TEXT NULL,
+                changefreq TEXT NULL,
+                priority TEXT NULL,
+              );');
+    
+    return $dbh;    
+}
+
+
 
 =head1 SEE ALSO
 

@@ -1,8 +1,7 @@
 1.0
-	- Bugfix (major): Fixed a problem caused when adding a very large number of URLs to a sitemap, with
-		a relatively small amount of ram.  Older versions instantiated a URI::Http object for each and every
-		URL that was resolved, and stored that in memory.  With hundreds of millions of URLs, this will eat 
-		a large amount of memory when rebuilding the sitemaps.  	
+	- Bugfix (major): Fixed a problem caused when adding a very large number of URLs to a sitemap.  
+		All the URIs for SitemapBuilder were stored in RAM.  Now a temp sqlite database is created,
+		and URI data is stored there.  The database is deleted after your script exits.	
 
 0.9.1
 	- Bugfix (major):  Fixed error that caused type validation error when 'base_url' was overridden in site configuration.
