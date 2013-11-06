@@ -12,13 +12,15 @@ use File::Temp qw/tempdir/;
 use Path::Class;
 use Moose;
 
+BEGIN { our $VERSION = '1.0'; }
+
 =head1 NAME 
 
 Catalyst::Plugin::BigSitemap::SitemapBuilder - Helper object for the BigSitemap plugin
 
 =head1 VERSION
 
-0.02
+1.0
 
 =head1 DESCRIPTION
 
@@ -67,11 +69,11 @@ lastmod is not supported on the sitemap index.
 
 =cut
 
-# has 'urls'                  => ( is => 'rw', isa => 'ArrayRef[WWW::Sitemap::XML::URL]', default => sub { [] } );
 has 'sitemap_base_uri'      => ( is => 'ro', isa => 'URI' );
 has 'sitemap_name_format'   => ( is => 'ro', isa => 'Str' );
 has 'failed_count'          => ( is => 'rw', isa => 'Int', default => 0 );
 has 'dbh'                   => ( is => 'ro', builder => '_build_dbh' );
+has '_insert_cmd'           => ( is => 'ro', builder => '_build_insert_cmd', lazy => 1 );
 
 =head1 METHODS
 
@@ -135,10 +137,10 @@ sub add {
             croak "method add() requires either a single argument, or an even number of arguments.";  
         }
         
-        my $insert_cmd = $self->dbi->prepare('INSERT INTO uri (loc, lastmod, changefreq, priority) VALUES (?,?,?,?)');
-        $insert_cmd->execute($u->loc, $u->lastmod, $u->changefreq, $u->priority);        
+        
+        $self->_insert_cmd->execute($u->loc, $u->lastmod, $u->changefreq, $u->priority);        
     }
-    catch {   
+    catch {           
         $self->failed_count($self->failed_count + 1);
     };
     
@@ -166,7 +168,7 @@ sub sitemap_index {
     
     for (my $index = 0; $index < $self->sitemap_count; $index++) {   
         # TODO: support lastupdate
-        $smi->add( loc => $self->sitemap_base_uri->as_string . sprintf($self->sitemap_url_format, ($index + 1)) );
+        $smi->add( loc => $self->sitemap_base_uri->as_string . sprintf($self->sitemap_name_format, ($index + 1)) );
     }
     
     return $smi;    
@@ -218,12 +220,13 @@ sub _urls_slice {
     my @urls = ();
     foreach my $id (keys %$rows) {
         my $d = $rows->{$id};
-        push @urls, WWW::Sitemap::XML::URL->new(
-            loc         => $d->{loc}, 
-            lastmod     => $d->{lastmod}, 
-            changefreq  => $d->{changefreq}, 
-            priority    => $d->{priority}
-        );
+        
+        my %constructor_args = (loc => $d->{loc});
+        $constructor_args{lastmod} = $d->{lastmod} if $d->{lastmod};
+        $constructor_args{changefreq} = $d->{changefreq} if $d->{changefreq};
+        $constructor_args{priority} = $d->{priority} if $d->{priority};
+        
+        push @urls, WWW::Sitemap::XML::URL->new(%constructor_args);
     }
     
     return @urls;
@@ -255,10 +258,15 @@ sub _build_dbh {
                 loc TEXT NOT NULL,
                 lastmod TEXT NULL,
                 changefreq TEXT NULL,
-                priority TEXT NULL,
-              );');
+                priority TEXT NULL
+              )');
     
     return $dbh;    
+}
+
+sub _build_insert_cmd {
+    my $self = shift;    
+    return $self->dbh->prepare('INSERT INTO uri (loc, lastmod, changefreq, priority) VALUES (?,?,?,?)');
 }
 
 

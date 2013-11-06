@@ -1,7 +1,7 @@
 #!perl
 use warnings;
 use strict;
-use Test::More 0.94;
+use Test::More 0.47;
 
 # Include a cut-down version of YAML::Tiny so we don't introduce unnecessary
 # dependencies ourselves.

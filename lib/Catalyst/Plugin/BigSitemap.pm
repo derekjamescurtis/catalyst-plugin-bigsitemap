@@ -6,8 +6,10 @@ use WWW::Sitemap::XML;
 use Path::Class;
 use Carp;
 use Moose;
+use URI;
 
-BEGIN { $Catalyst::Plugin::BigSitemap::VERSION = '0.9'; }
+
+BEGIN { our $VERSION = '1.0'; }
 
 =encoding utf8
 
@@ -17,7 +19,7 @@ Catalyst::Plugin::BigSitemap - Auto-generated Sitemaps for up to 2.5 billion URL
 
 =head1 VERSION
 
-0.02
+1.0
 
 =head1 DESCRIPTION
 
@@ -251,10 +253,12 @@ sub _get_sitemap_builder {
     my $self = shift;
     
     # setup our builder
-    my $sb = Catalyst::Plugin::BigSitemap::SitemapBuilder->new(
-        sitemap_base_uri    => $self->config->{'Plugin::BigSitemap'}->{url_base} || $self->req->base,
+    my $sb = Catalyst::Plugin::BigSitemap::SitemapBuilder->new(    
+        sitemap_base_uri    => URI->new( $self->config->{'Plugin::BigSitemap'}->{url_base} )  || $self->req->base,
         sitemap_name_format => $self->config->{'Plugin::BigSitemap'}->{sitemap_name_format} || 'sitemap%d.xml.gz',
     );
+   
+    $sb->dbh->begin_work;
     
     # Ugly ugly .. but all we're doing here is looping over every action of every controller in our application.
     foreach my $controller ( map { $self->controller($_) } $self->controllers ) {          
@@ -291,9 +295,11 @@ sub _get_sitemap_builder {
 
             $uri_params{loc} = $self->uri_for_action( $action->private_path );
             $sb->add(%uri_params);
-                               
+            
         } # foreach $action             
     } # foreach $controller
+    
+    $sb->dbh->commit;
     
     return $sb;
 }

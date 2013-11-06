@@ -1,8 +1,19 @@
 # Catalyst::Plugin::BigSitemap
 
-## Version 0.9
+## Version 1.0.1
 
 ## Change History 
+
+### 1.0.1
+
+* Documentation updates
+* MAJOR CHANGE: SitemapBuilder public interface no longer includes a urls array.  With a large quantity of urls (hundreds of millions)
+  using this accessor would likely cause a system crash by placing all the URI objects in an arrayref.
+* MAJOR CHANGE: Removed type constraint for URLs to be of type URI::Http.  Any valid URI can now be used.
+
+### 1.0
+
+* Converted SitemapBuilder to cache URL data to a SQLite database instead of storing in RAM.
 
 ### 0.9
 

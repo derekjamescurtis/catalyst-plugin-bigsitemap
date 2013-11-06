@@ -1,4 +1,4 @@
-1.0
+1.0.1
 	- Bugfix (major): Fixed a problem caused when adding a very large number of URLs to a sitemap.  
 		All the URIs for SitemapBuilder were stored in RAM.  Now a temp sqlite database is created,
 		and URI data is stored there.  The database is deleted after your script exits.	
