@@ -1,9 +1,19 @@
+1.0
+	- Bugfix (major): Fixed a problem caused when adding a very large number of URLs to a sitemap, with
+		a relatively small amount of ram.  Older versions instantiated a URI::Http object for each and every
+		URL that was resolved, and stored that in memory.  With hundreds of millions of URLs, this will eat 
+		a large amount of memory when rebuilding the sitemaps.  	
+
+0.9.1
+	- Bugfix (major):  Fixed error that caused type validation error when 'base_url' was overridden in site configuration.
+		The value read out of the configuration file was not being properly converted to a URI object, instead it was
+		passed to SitemapBuilder as a string, which failed validation.
 0.9
-    - Added unit tests
-    - Bugfix for SitemapBuilder->_urls_slice
+    - Feature: Added unit tests
+    - Bugfix (minor): SitemapBuilder->_urls_slice wasn't returning expected slices of URLs array.  Resolved.
     
 0.02
-    - Added two methods to BigSitemap.pm for complete interface compatibility with Sitemap.pm
+    - Feature: Added two methods to BigSitemap.pm for complete interface compatibility with Sitemap.pm
         - sitemap
         - sitemap_as_xml
         
