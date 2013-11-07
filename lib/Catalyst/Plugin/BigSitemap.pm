@@ -259,11 +259,20 @@ sub _get_sitemap_builder {
     );
    
     $sb->dbh->begin_work;
+    my $i = 0;
+    print "Starting build process at " . DateTime->now() . "\n";
     
+
     # Ugly ugly .. but all we're doing here is looping over every action of every controller in our application.
+    CONTROLLER:
     foreach my $controller ( map { $self->controller($_) } $self->controllers ) {          
+
+        print 'Running for controller ' . $controller . "\n";
+
         ACTION: 
         foreach my $action ( map { $controller->action_for( $_->name ) } $controller->get_action_methods ) {
+
+            print 'Running for action ' . $action . "\n";
 
             # Make sure there's at least one sitemap action .. 
             # Throw an exception if there's more than one sitemap attribute
@@ -295,11 +304,22 @@ sub _get_sitemap_builder {
 
             $uri_params{loc} = $self->uri_for_action( $action->private_path );
             $sb->add(%uri_params);
+
+            # commit to database every 50,000 urls
+            $i++;
+            unless ($i % 50_000) {
+                $sb->dbh->commit;
+                $sb->dbh->begin_work;
+            }
+            unless ($i % 100) {
+                print "$i URLs retrieved..." . DateTime->now() . "\n";
+            }
             
         } # foreach $action             
     } # foreach $controller
     
     $sb->dbh->commit;
+    print "Sitemap builder complete at " . DateTime->now() . "\n";
     
     return $sb;
 }

@@ -126,11 +126,19 @@ sub add {
         }
         elsif (@params == 1){  
         	# if only a single parameter is provided, we assume it's location
-            $u = WWW::Sitemap::XML::URL->new(loc => $params[0]);
+            my $loc = URI->new($params[0]);
+            my $host = URI->new( $self->sitemap_base_uri );
+            $loc->host( $host->host );
+ 
+            $u = WWW::Sitemap::XML::URL->new(loc => $loc);
         }
         elsif (@params % 2 == 0) {       
-        	# otherwise, we need an even number of args
+            # otherwise, we need an even number of args
             my %ph = @params;      
+            my $loc = URI->new($ph{loc});           
+            my $host = URI->new( $self->sitemap_base_uri );
+            $loc->host( $host->host );
+            $ph{loc} = $loc;
             $u = WWW::Sitemap::XML::URL->new(%ph);
         }        
         else {                        
