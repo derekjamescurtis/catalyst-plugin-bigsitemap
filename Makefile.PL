@@ -5,7 +5,7 @@ name 'Catalyst-Plugin-BigSitemap';
 abstract 'A Catalyst Plugin for Sitemaps up to 2.5 billion urls.';
 license 'perl';
 version '1.0.1';
-perl_version '5.010002';
+perl_version '5.010001';
 all_from 'lib/Catalyst/Plugin/BigSitemap.pm';
 
 requires 'Catalyst'; 
