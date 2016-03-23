@@ -71,7 +71,7 @@ building and serving from Catalyst for each request..)
 ```
 
 ### MyController.pm
-```
+```perl
 #
 # Actions you want included in your sitemap.  In this example, there's a total of 10 urls that will be written
 #
