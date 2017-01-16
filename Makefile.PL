@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
-use inc::Module::Install 1.02;
+
+use lib '.'; #for perls without '.' in @INC
+use inc::Module::Install 1.1;
 
 name 'Catalyst-Plugin-BigSitemap';
 abstract 'A Catalyst Plugin for Sitemaps up to 2.5 billion urls.';
@@ -20,4 +22,5 @@ requires 'Modern::Perl'     => '1.20121103';
 
 test_requires 'Test::More'  => '0.47';
 
+repository 'http://github.com/derekjamescurtis/catalyst-plugin-bigsitemap';
 WriteAll();
